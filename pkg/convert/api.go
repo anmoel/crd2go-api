@@ -197,7 +197,7 @@ func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePat
 			}
 			return fmt.Sprintf("[]%s", kind), nil
 		}
-		return fmt.Sprintf("[]%s", kind), nil
+		return fmt.Sprintf("[]%s", value.Items.Type), nil
 
 	case "object":
 		kind := strings.Title(key)
