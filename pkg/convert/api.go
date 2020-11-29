@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -147,10 +148,13 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 					JSON: jsonDefinition,
 				})
 			}
+			re := regexp.MustCompile(`[\n\r]+`)
+			description := re.ReplaceAll([]byte(propertyValue.Description), []byte("\n// "))
+
 			if err := blockTemplate.Execute(file, &templateOptionsBlock{
 				Kind:        propertyName,
 				Properties:  chieldProperties,
-				Description: propertyValue.Description,
+				Description: string(description),
 			}); err != nil {
 				return err
 			}
