@@ -71,12 +71,14 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 	}
 	for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties {
 		var jsonDefinition string
+		required := true
 		if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Required, key) {
 			jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
 		} else {
 			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
+			required = false
 		}
-		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
 		if err != nil {
 			return err
 		}
@@ -102,12 +104,14 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 	}
 	for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Properties {
 		var jsonDefinition string
+		required := true
 		if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Required, key) {
 			jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
 		} else {
 			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
+			required = false
 		}
-		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
 		if err != nil {
 			return err
 		}
@@ -133,12 +137,14 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 			}
 			for key, value := range propertyValue.Properties {
 				var jsonDefinition string
+				required := true
 				if contains(propertyValue.Required, key) {
 					jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
 				} else {
 					jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
+					required = false
 				}
-				propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+				propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
 				if err != nil {
 					return err
 				}
@@ -187,7 +193,7 @@ func createTemplateFile(filePath string, templateString string, templateOptions 
 	return nil
 }
 
-func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePath string) (string, error) {
+func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePath string, required bool) (string, error) {
 	switch value.Type {
 	case "array":
 		kind := trimSuffix(strings.Title(key), "s")
@@ -199,9 +205,15 @@ func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePat
 			if !exists {
 				blockProperties[kind] = value.Items
 			}
-			return fmt.Sprintf("[]%s", kind), nil
+			if required {
+				return fmt.Sprintf("[]%s", kind), nil
+			}
+			return fmt.Sprintf("[]*%s", kind), nil
 		}
-		return fmt.Sprintf("[]%s", value.Items.Type), nil
+		if required {
+			return fmt.Sprintf("[]%s", value.Items.Type), nil
+		}
+		return fmt.Sprintf("[]*%s", value.Items.Type), nil
 
 	case "object":
 		kind := strings.Title(key)
@@ -215,13 +227,27 @@ func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePat
 		if !exists {
 			blockProperties[strings.Title(key)] = &value
 		}
-		return kind, nil
+		if required {
+			return kind, nil
+		}
+		return fmt.Sprintf("*%s", kind), nil
 	case "boolean":
-		return "bool", nil
+		if required {
+			return "bool", nil
+		}
+		return "*bool", nil
 	case "integer":
-		return "int", nil
+		if required {
+			return "int", nil
+		}
+		return "*int", nil
+	case "string":
+		return "string", nil
 	default:
-		return value.Type, nil
+		if required {
+			return value.Type, nil
+		}
+		return fmt.Sprintf("*%s", value.Type), nil
 	}
 }
 
