@@ -1,23 +1,9 @@
 package templates
 
 // TemplateTypesGo is the template for the _types.go files
-const TemplateTypesGo = `/*
-Copyright 2020 Datadrivers GmbH.
+const TemplateTypesGo = `{{ if ne .License "" }}{{ .License }}
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package {{ .Version }}
+{{ end }}package {{ .CRD.Version }}
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,26 +12,26 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// {{ .Names.Kind }} is the Schema for the {{ .Names.Plural }} API
-type {{ .Names.Kind }} struct {
+// {{ .CRD.Names.Kind }} is the Schema for the {{ .CRD.Names.Plural }} API
+type {{ .CRD.Names.Kind }} struct {
 	metav1.TypeMeta   ` + "`" + `json:",inline"` + "`" + `
 	metav1.ObjectMeta ` + "`" + `json:"metadata,omitempty"` + "`" + `
 
-	Spec   {{ .Names.Kind }}Spec   ` + "`" + `json:"spec,omitempty"` + "`" + `
-	Status {{ .Names.Kind }}Status ` + "`" + `json:"status,omitempty"` + "`" + `
+	Spec   {{ .CRD.Names.Kind }}Spec   ` + "`" + `json:"spec,omitempty"` + "`" + `
+	Status {{ .CRD.Names.Kind }}Status ` + "`" + `json:"status,omitempty"` + "`" + `
 }
 
 // +kubebuilder:object:root=true
 
-// {{ .Names.Kind }}List contains a list of {{ .Names.Kind }}
-type {{ .Names.Kind }}List struct {
+// {{ .CRD.Names.Kind }}List contains a list of {{ .CRD.Names.Kind }}
+type {{ .CRD.Names.Kind }}List struct {
 	metav1.TypeMeta ` + "`" + `json:",inline"` + "`" + `
 	metav1.ListMeta ` + "`" + `json:"metadata,omitempty"` + "`" + `
-	Items           []{{ .Names.Kind }} ` + "`" + `json:"items"` + "`" + `
+	Items           []{{ .CRD.Names.Kind }} ` + "`" + `json:"items"` + "`" + `
 }
 
 func init() {
-	SchemeBuilder.Register(&{{ .Names.Kind }}{}, &{{ .Names.Kind }}List{})
+	SchemeBuilder.Register(&{{ .CRD.Names.Kind }}{}, &{{ .CRD.Names.Kind }}List{})
 }
 
 `

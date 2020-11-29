@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var targetPackage string
+var licenseFilePath string
 
 // convertCmd represents the convert command
 var convertCmd = &cobra.Command{
@@ -32,7 +32,7 @@ var convertCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(2),
 
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := convert.CRD2Api(args[0], args[1], targetPackage); err != nil {
+		if err := convert.CRD2Api(args[0], args[1], licenseFilePath); err != nil {
 			log.Panicf("Could not generate api definitions. Error %v", err)
 		} else {
 			log.Println("Api definitions generated")
@@ -44,9 +44,8 @@ func init() {
 	rootCmd.AddCommand(convertCmd)
 
 	// Here you will define your flags and configuration settings.
-	convertCmd.PersistentFlags().StringVarP(&targetPackage, "target-package", "p", "", "The target package is used for the imports")
+	convertCmd.PersistentFlags().StringVarP(&licenseFilePath, "license-file-path", "l", "", "The path to the license file is used by the templates")
 
-	convertCmd.MarkFlagRequired("target-package")
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// convertCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")

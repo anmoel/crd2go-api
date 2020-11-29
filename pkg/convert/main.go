@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -14,9 +15,19 @@ type groupVersion struct {
 }
 
 // CRD2Api includes the convertion logic
-func CRD2Api(crdFolder string, outputFolder string, targetPackage string) error {
+func CRD2Api(crdFolder string, outputFolder string, licenseFilePath string) error {
 	var apiGroupVersions []groupVersion
 	var crds []*CustomResourceDefinition
+
+	// Reading license
+	license := ""
+	if licenseFilePath != "" {
+		licenseByte, err := ioutil.ReadFile(licenseFilePath)
+		if err != nil {
+			return err
+		}
+		license = string(licenseByte)
+	}
 
 	// Reading CRD files
 	var files []string
@@ -68,6 +79,7 @@ func CRD2Api(crdFolder string, outputFolder string, targetPackage string) error 
 		if err := createGroupversionInfoGoFile(path.Join(versionFolderPath, "groupversion_info.go"), &templateOptionsGroupversionInfo{
 			Group:   gv.Group,
 			Version: gv.Version,
+			License: license,
 		}); err != nil {
 			return err
 		}
@@ -76,7 +88,7 @@ func CRD2Api(crdFolder string, outputFolder string, targetPackage string) error 
 	// Generate type files
 	for _, crd := range crds {
 		filepath := path.Join(outputFolder, crd.Spec.Group, crd.Spec.Version, fmt.Sprintf("%s_types.go", crd.Spec.Names.Singular))
-		if err := createTypesGoFile(filepath, crd); err != nil {
+		if err := createTypesGoFile(filepath, crd, license); err != nil {
 			return err
 		}
 	}

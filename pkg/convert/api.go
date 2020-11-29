@@ -14,6 +14,11 @@ import (
 type templateOptionsGroupversionInfo struct {
 	Group   string
 	Version string
+	License string
+}
+type templateOptionsTypes struct {
+	CRD     Spec
+	License string
 }
 
 type blockProperty struct {
@@ -39,7 +44,7 @@ func createGroupversionInfoGoFile(filePath string, templateOptions *templateOpti
 	return createTemplateFile(filePath, templates.TemplateGroupversionInfoGo, templateOptions)
 }
 
-func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
+func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license string) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -48,7 +53,10 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 	if err != nil {
 		return err
 	}
-	err = fileTemplate.Execute(file, crd.Spec)
+	err = fileTemplate.Execute(file, templateOptionsTypes{
+		License: license,
+		CRD:     crd.Spec,
+	})
 	if err != nil {
 		return err
 	}
