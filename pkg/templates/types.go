@@ -26,8 +26,8 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// {{.Names.Kind}} is the Schema for the {{.Names.Plural}} API
-type {{.Names.Kind}} struct {
+// {{ .Names.Kind }} is the Schema for the {{ .Names.Plural }} API
+type {{ .Names.Kind }} struct {
 	metav1.TypeMeta   ` + "`" + `json:",inline"` + "`" + `
 	metav1.ObjectMeta ` + "`" + `json:"metadata,omitempty"` + "`" + `
 
@@ -37,21 +37,21 @@ type {{.Names.Kind}} struct {
 
 // +kubebuilder:object:root=true
 
-// {{.Names.Kind}}List contains a list of {{.Names.Kind}}
-type {{.Names.Kind}}List struct {
+// {{ .Names.Kind }}List contains a list of {{ .Names.Kind }}
+type {{ .Names.Kind }}List struct {
 	metav1.TypeMeta ` + "`" + `json:",inline"` + "`" + `
 	metav1.ListMeta ` + "`" + `json:"metadata,omitempty"` + "`" + `
-	Items           []{{.Names.Kind}} ` + "`" + `json:"items"` + "`" + `
+	Items           []{{ .Names.Kind }} ` + "`" + `json:"items"` + "`" + `
 }
 
 func init() {
-	SchemeBuilder.Register(&{{.Names.Kind}}{}, &{{.Names.Kind}}List{})
+	SchemeBuilder.Register(&{{ .Names.Kind }}{}, &{{ .Names.Kind }}List{})
 }
 
 `
 
 // TemplateSpecBlock is the template for the spec block of the _types.go files
-const TemplateSpecBlock = `// {{ .Kind }}Spec defines the desired state of {{ .Kind}}
+const TemplateSpecBlock = `// {{ .Kind }}Spec defines the desired state of {{ .Kind }}
 type {{ .Kind }}Spec struct { {{ range .Properties }}
 	{{ .Name }}	{{ .Type }}	{{ .JSON }}{{ end }}
 }
@@ -65,8 +65,8 @@ type {{ .Kind }}Status struct { {{ range .Properties }}
 `
 
 // TemplateBlock is the template for the _types.go files
-const TemplateBlock = `// {{ .Description}}
-type {{.Kind}} struct { {{ range .Properties }}
+const TemplateBlock = `// {{ .Kind }} : {{ .Description }}
+type {{ .Kind }} struct { {{ range .Properties }}
 	{{ .Name }}	{{ .Type }}	{{ .JSON }}{{ end }}
 }
 `

@@ -6,13 +6,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 type groupVersion struct {
-	Group      string
-	GroupShort string
-	Version    string
+	Group   string
+	Version string
 }
 
 // CRD2Api includes the convertion logic
@@ -39,9 +37,8 @@ func CRD2Api(crdFolder string, outputFolder string, targetPackage string) error 
 			return err
 		}
 		gv := groupVersion{
-			Group:      crd.Spec.Group,
-			GroupShort: strings.Split(crd.Spec.Group, ".")[0],
-			Version:    crd.Spec.Version,
+			Group:   crd.Spec.Group,
+			Version: crd.Spec.Version,
 		}
 		foundGroupVersion := false
 		for _, v := range apiGroupVersions {

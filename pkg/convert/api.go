@@ -23,6 +23,11 @@ type blockProperty struct {
 }
 
 type templateOptionsSpecStatusBlock struct {
+	Kind       string
+	Properties []blockProperty
+}
+
+type templateOptionsBlock struct {
 	Kind        string
 	Properties  []blockProperty
 	Description string
@@ -70,9 +75,8 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 		})
 	}
 	err = specTemplate.Execute(file, &templateOptionsSpecStatusBlock{
-		Kind:        crd.Spec.Names.Kind,
-		Properties:  specProperties,
-		Description: crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Description,
+		Kind:       crd.Spec.Names.Kind,
+		Properties: specProperties,
 	})
 	if err != nil {
 		return err
@@ -98,9 +102,8 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 		})
 	}
 	if err := statusTemplate.Execute(file, &templateOptionsSpecStatusBlock{
-		Kind:        crd.Spec.Names.Kind,
-		Properties:  statusProperties,
-		Description: crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Description,
+		Kind:       crd.Spec.Names.Kind,
+		Properties: statusProperties,
 	}); err != nil {
 		return err
 	}
@@ -108,7 +111,7 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 	for {
 		for propertyName, propertyValue := range blockProperties {
 			var chieldProperties []blockProperty
-			blockTemplate, err := template.New("status-tmpl").Parse(templates.TemplateBlock)
+			blockTemplate, err := template.New("block-tmpl").Parse(templates.TemplateBlock)
 			if err != nil {
 				return err
 			}
@@ -125,7 +128,7 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 					JSON: jsonDefinition,
 				})
 			}
-			if err := blockTemplate.Execute(file, &templateOptionsSpecStatusBlock{
+			if err := blockTemplate.Execute(file, &templateOptionsBlock{
 				Kind:        propertyName,
 				Properties:  chieldProperties,
 				Description: propertyValue.Description,
