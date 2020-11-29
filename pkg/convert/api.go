@@ -40,7 +40,6 @@ func createGroupversionInfoGoFile(filePath string, templateOptions *templateOpti
 }
 
 func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
-	folderPath := filepath.Dir(filePath)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -68,9 +67,13 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 		} else {
 			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
 		}
+		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+		if err != nil {
+			return err
+		}
 		specProperties = append(specProperties, blockProperty{
 			Name: strings.Title(key),
-			Type: getPropertyTypeAndCreateNewBlock(key, value, folderPath),
+			Type: propertyType,
 			JSON: jsonDefinition,
 		})
 	}
@@ -95,9 +98,13 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 		} else {
 			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
 		}
+		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+		if err != nil {
+			return err
+		}
 		statusProperties = append(statusProperties, blockProperty{
 			Name: strings.Title(key),
-			Type: getPropertyTypeAndCreateNewBlock(key, value, folderPath),
+			Type: propertyType,
 			JSON: jsonDefinition,
 		})
 	}
@@ -122,9 +129,13 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition) error {
 				} else {
 					jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
 				}
+				propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath)
+				if err != nil {
+					return err
+				}
 				chieldProperties = append(chieldProperties, blockProperty{
 					Name: strings.Title(key),
-					Type: getPropertyTypeAndCreateNewBlock(key, value, folderPath),
+					Type: propertyType,
 					JSON: jsonDefinition,
 				})
 			}
@@ -164,46 +175,54 @@ func createTemplateFile(filePath string, templateString string, templateOptions 
 	return nil
 }
 
-func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, folderPath string) string {
+func getPropertyTypeAndCreateNewBlock(key string, value OpenAPIV3Schema, filePath string) (string, error) {
 	switch value.Type {
 	case "array":
 		kind := trimSuffix(strings.Title(key), "s")
 		if value.Items.Type == "object" {
-			exists, _ := propertyBlockExists(folderPath, kind)
+			exists, err := propertyBlockExists(filePath, kind)
+			if err != nil {
+				return "", err
+			}
 			if !exists {
 				blockProperties[kind] = value.Items
 			}
-			return fmt.Sprintf("[]%s", kind)
+			return fmt.Sprintf("[]%s", kind), nil
 		}
-		return fmt.Sprintf("[]%s", kind)
+		return fmt.Sprintf("[]%s", kind), nil
 
 	case "object":
 		kind := strings.Title(key)
 		if value.AdditionalProperties != nil {
-			return fmt.Sprintf("map[string]%s", value.AdditionalProperties.Type)
+			return fmt.Sprintf("map[string]%s", value.AdditionalProperties.Type), nil
 		}
-		exists, _ := propertyBlockExists(folderPath, kind)
+		exists, err := propertyBlockExists(filePath, kind)
+		if err != nil {
+			return "", err
+		}
 		if !exists {
 			blockProperties[strings.Title(key)] = &value
 		}
-		return kind
+		return kind, nil
 	case "boolean":
-		return "bool"
+		return "bool", nil
 	case "integer":
-		return "int"
+		return "int", nil
 	default:
-		return value.Type
+		return value.Type, nil
 	}
 }
 
-func propertyBlockExists(folderPath string, kind string) (bool, error) {
+func propertyBlockExists(filePath string, kind string) (bool, error) {
+	folderPath := filepath.Dir(filePath)
 	blockExists := false
 	files, err := ioutil.ReadDir(folderPath)
 	if err != nil {
 		return blockExists, err
 	}
 	for _, file := range files {
-		read, err := ioutil.ReadFile(file.Name())
+		path := filepath.Join(folderPath, file.Name())
+		read, err := ioutil.ReadFile(path)
 		if err != nil {
 			return blockExists, err
 		}
@@ -211,7 +230,7 @@ func propertyBlockExists(folderPath string, kind string) (bool, error) {
 			blockExists = true
 		}
 	}
-	return false, nil
+	return blockExists, nil
 }
 
 func contains(s []string, e string) bool {
