@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -20,6 +21,8 @@ type templateOptionsGroupversionInfo struct {
 type templateOptionsTypes struct {
 	CRD     Spec
 	License string
+	Spec    bool
+	Status  bool
 }
 
 type blockProperty struct {
@@ -57,6 +60,8 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 	err = fileTemplate.Execute(file, templateOptionsTypes{
 		License: license,
 		CRD:     crd.Spec,
+		Spec:    crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties != nil,
+		Status:  crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Properties != nil,
 	})
 	if err != nil {
 		return err
@@ -64,68 +69,74 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 
 	blockProperties = make(map[string]*OpenAPIV3Schema)
 	//spec
-	var specProperties []blockProperty
-	specTemplate, err := template.New("spec-tmpl").Parse(templates.TemplateSpecBlock)
-	if err != nil {
-		return err
-	}
-	for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties {
-		var jsonDefinition string
-		required := true
-		if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Required, key) {
-			jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
-		} else {
-			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
-			required = false
-		}
-		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
+	if crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties != nil {
+		var specProperties []blockProperty
+		specTemplate, err := template.New("spec-tmpl").Parse(templates.TemplateSpecBlock)
 		if err != nil {
 			return err
 		}
-		specProperties = append(specProperties, blockProperty{
-			Name: strings.Title(key),
-			Type: propertyType,
-			JSON: jsonDefinition,
+		for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties {
+			var jsonDefinition string
+			required := true
+			if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Required, key) {
+				jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
+			} else {
+				jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
+				required = false
+			}
+			propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
+			if err != nil {
+				return err
+			}
+			specProperties = append(specProperties, blockProperty{
+				Name: strings.Title(key),
+				Type: propertyType,
+				JSON: jsonDefinition,
+			})
+		}
+		sort.Slice(specProperties, func(i, j int) bool { return specProperties[i].Name < specProperties[j].Name })
+		err = specTemplate.Execute(file, &templateOptionsSpecStatusBlock{
+			Kind:       crd.Spec.Names.Kind,
+			Properties: specProperties,
 		})
-	}
-	err = specTemplate.Execute(file, &templateOptionsSpecStatusBlock{
-		Kind:       crd.Spec.Names.Kind,
-		Properties: specProperties,
-	})
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	//status
-	var statusProperties []blockProperty
-	statusTemplate, err := template.New("status-tmpl").Parse(templates.TemplateStatusBlock)
-	if err != nil {
-		return err
-	}
-	for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Properties {
-		var jsonDefinition string
-		required := true
-		if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Required, key) {
-			jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
-		} else {
-			jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
-			required = false
-		}
-		propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
+	if crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Properties != nil {
+		var statusProperties []blockProperty
+		statusTemplate, err := template.New("status-tmpl").Parse(templates.TemplateStatusBlock)
 		if err != nil {
 			return err
 		}
-		statusProperties = append(statusProperties, blockProperty{
-			Name: strings.Title(key),
-			Type: propertyType,
-			JSON: jsonDefinition,
-		})
-	}
-	if err := statusTemplate.Execute(file, &templateOptionsSpecStatusBlock{
-		Kind:       crd.Spec.Names.Kind,
-		Properties: statusProperties,
-	}); err != nil {
-		return err
+		for key, value := range crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Properties {
+			var jsonDefinition string
+			required := true
+			if contains(crd.Spec.Validation.OpenAPIV3Schema.Properties["status"].Required, key) {
+				jsonDefinition = fmt.Sprintf("`json:\"%s\"`", key)
+			} else {
+				jsonDefinition = fmt.Sprintf("`json:\"%s,omitempty\"`", key)
+				required = false
+			}
+			propertyType, err := getPropertyTypeAndCreateNewBlock(key, value, filePath, required)
+			if err != nil {
+				return err
+			}
+			statusProperties = append(statusProperties, blockProperty{
+				Name: strings.Title(key),
+				Type: propertyType,
+				JSON: jsonDefinition,
+			})
+		}
+		sort.Slice(statusProperties, func(i, j int) bool { return statusProperties[i].Name < statusProperties[j].Name })
+		if err := statusTemplate.Execute(file, &templateOptionsSpecStatusBlock{
+			Kind:       crd.Spec.Names.Kind,
+			Properties: statusProperties,
+		}); err != nil {
+			return err
+		}
 	}
 	//additional blocks
 	for {
@@ -154,6 +165,8 @@ func createTypesGoFile(filePath string, crd *CustomResourceDefinition, license s
 					JSON: jsonDefinition,
 				})
 			}
+
+			sort.Slice(chieldProperties, func(i, j int) bool { return chieldProperties[i].Name < chieldProperties[j].Name })
 			re := regexp.MustCompile(`[\n\r]+`)
 			description := re.ReplaceAll([]byte(propertyValue.Description), []byte("\n// "))
 

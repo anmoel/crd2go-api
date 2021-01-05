@@ -17,8 +17,8 @@ type {{ .CRD.Names.Kind }} struct {
 	metav1.TypeMeta   ` + "`" + `json:",inline"` + "`" + `
 	metav1.ObjectMeta ` + "`" + `json:"metadata,omitempty"` + "`" + `
 
-	Spec   {{ .CRD.Names.Kind }}Spec   ` + "`" + `json:"spec,omitempty"` + "`" + `
-	Status {{ .CRD.Names.Kind }}Status ` + "`" + `json:"status,omitempty"` + "`" + `
+	{{ if eq .Spec true }}Spec   {{ .CRD.Names.Kind }}Spec   ` + "`" + `json:"spec,omitempty"` + "`" + `{{ end }}
+	{{ if eq .Status true }}Status {{ .CRD.Names.Kind }}Status ` + "`" + `json:"status,omitempty"` + "`" + `{{ end }}
 }
 
 // +kubebuilder:object:root=true
